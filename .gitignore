@@ -14,3 +14,4 @@ lib/
 msg_gen/
 srv_gen/
 .catkin_tools/
+*.gch
