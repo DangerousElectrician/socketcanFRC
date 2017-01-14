@@ -6,14 +6,41 @@
 #include <map>
 #include <iterator>
 
+//socketcan includes
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+
+#include <net/if.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+
+#include <linux/can.h>
+#include <linux/can/raw.h>
+
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif  
-	//ros::NodeHandle *n;
 
-	void init_CANSend() {
+	struct ifreq ifr;
+	struct sockaddr_can addr;
+	int s;
+	const char *ifname = "slcan0";
+
+	void init_socketCAN() {
+		//s = socket(PF_CAN, SOCK_DGRAM, CAN_BCM);
+		s = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+		strcpy(ifr.ifr_name, ifname);
+		ioctl(s, SIOCGIFINDEX, &ifr); 
+		addr.can_family = AF_CAN; 
+		addr.can_ifindex = ifr.ifr_ifindex; 
+		//connect(s, (struct sockaddr *)&addr, sizeof(addr));
+		
+		bind(s, (struct sockaddr *)&addr, sizeof(addr));
 	}
 
 	void FRC_NetworkCommunication_CANSessionMux_sendMessage(uint32_t messageID, const uint8_t *data, uint8_t dataSize, int32_t periodMs, int32_t *status) {
@@ -25,7 +52,12 @@ extern "C"
 	}
 
 	void FRC_NetworkCommunication_CANSessionMux_receiveMessage(uint32_t *messageID, uint32_t messageIDMask, uint8_t *data, uint8_t *dataSize, uint32_t *timeStamp, int32_t *status) {
-		std::cout << "recvCAN " << *messageID << std::endl;
+		std::cout << "recvCAN " << std::hex<<*messageID << std::endl;
+		struct can_frame msg;
+		read(s, &msg, sizeof(msg));
+		std::cout << std::hex<<msg.can_id << std::endl;
+		for(int i=0; i<8; i++) data[i] = msg.data[i];
+
 
 
 	}

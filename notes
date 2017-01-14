@@ -106,3 +106,26 @@ Data from a stream session are kept in _sigs and are accessed by enum. _sigs is 
 
 tell can device to remember this many messages from this arbID
 ask for cached messages
+
+export CPATH=./include
+g++ -Wall include/FRC_NetworkCommunication/CANSessionMux.h CANSessionMux.cpp include/HAL/CanTalonSRX.h CanTalonSRX.cpp include/ctre/CtreCanNode.h CtreCanNode.cpp include/ctre/ctre.h test.cpp -std=c++0x
+
+
+sudo slcand -o -c -s8 /dev/ttyACM1 slcan0; sudo ip link set slcan0 up
+
+socketcan activities
+	must send periodic messages
+		do this with broadcast manager
+	must send single messages
+		not sure if this can be done with broadcast manager
+	must return messages with given id
+		can be done in either raw or bcm mode
+
+bind to raw, connect to bcm?
+	yes 
+
+	"After binding (CAN_RAW) or connecting (CAN_BCM) the socket, you can read(2) and write(2) from/to the socket or use send(2), sendto(2), sendmsg(2) and the recv* counterpart operations on the socket as usual."
+	there is a difference between bind and connect. google it
+
+
+
