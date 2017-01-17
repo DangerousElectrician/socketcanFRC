@@ -19,6 +19,7 @@
 
 #include <linux/can.h>
 #include <linux/can/raw.h>
+#include <linux/can/bcm.h>
 
 
 #ifdef __cplusplus
@@ -29,7 +30,14 @@ extern "C"
 	struct ifreq ifr;
 	struct sockaddr_can addr;
 	int s;
+	int sbcm;
 	const char *ifname = "slcan0";
+	struct can_filter rfilter[1];
+
+	struct can_msg {
+		struct bcm_msg_head msg_head;
+		struct can_frame frame[1];
+	} msg;
 
 	void init_socketCAN() {
 		//s = socket(PF_CAN, SOCK_DGRAM, CAN_BCM);
@@ -41,6 +49,10 @@ extern "C"
 		//connect(s, (struct sockaddr *)&addr, sizeof(addr));
 		
 		bind(s, (struct sockaddr *)&addr, sizeof(addr));
+
+		sbcm = socket(PF_CAN, SOCK_DGRAM, CAN_BCM);
+		connect(sbcm, (struct sockaddr *)&addr, sizeof(addr));
+
 	}
 
 	void FRC_NetworkCommunication_CANSessionMux_sendMessage(uint32_t messageID, const uint8_t *data, uint8_t dataSize, int32_t periodMs, int32_t *status) {
@@ -49,10 +61,40 @@ extern "C"
 			std::cout << unsigned(data[i]) << "\t";
 		}
 		std::cout << "datsize:" << unsigned(dataSize) << "\tper:" << periodMs << std::endl;
+
+		msg.msg_head.opcode  = TX_SETUP;
+		msg.msg_head.can_id  = messageID | 0x80000000;
+		msg.msg_head.flags   = SETTIMER|STARTTIMER|TX_CP_CAN_ID;
+		msg.msg_head.nframes = 1;
+		msg.msg_head.count = 0;
+		msg.msg_head.ival1.tv_sec = 0;
+		msg.msg_head.ival1.tv_usec = 0;
+		msg.msg_head.ival2.tv_sec = 0;
+		msg.msg_head.ival2.tv_usec = 10000;
+		//msg.frame[0].can_id    = 0x42; /* obsolete when using TX_CP_CAN_ID */
+		msg.frame[0].can_dlc   = dataSize;
+		for(int i = 0; i<dataSize; i++) msg.frame[0].data[i] = data[i];
+		write(sbcm, &msg, sizeof(msg));
+
+		//msg.msg_head.opcode = TX_SETUP;
+		//msg.msg_head.can_id = messageID | 0x80000000; //first bit must be set for 29 bit extended ids;
+		//msg.msg_head.flags = 0;
+		//msg.msg_head.nframes = 1;
+		//msg.frame[0].can_id = messageID;
+		//for(int i = 0; i<dataSize; i++) msg.frame[0].data[i] = data[i];
+		//msg.frame[0].can_dlc = dataSize;
+		
+		
 	}
 
+// this function does not block
 	void FRC_NetworkCommunication_CANSessionMux_receiveMessage(uint32_t *messageID, uint32_t messageIDMask, uint8_t *data, uint8_t *dataSize, uint32_t *timeStamp, int32_t *status) {
 		std::cout << "recvCAN " << std::hex<<*messageID << std::endl;
+
+		rfilter[0].can_id = *messageID;
+		rfilter[0].can_mask = CAN_EFF_MASK;
+		setsockopt(s, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter));
+
 		struct can_frame msg;
 		read(s, &msg, sizeof(msg));
 		std::cout << std::hex<<msg.can_id << std::endl;
