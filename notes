@@ -120,6 +120,7 @@ socketcan activities
 		not sure if this can be done with broadcast manager
 	must return messages with given id
 		can be done in either raw or bcm mode
+	cache received messages so status frames can be read multiple times
 
 bind to raw, connect to bcm?
 	yes 
@@ -127,5 +128,27 @@ bind to raw, connect to bcm?
 	"After binding (CAN_RAW) or connecting (CAN_BCM) the socket, you can read(2) and write(2) from/to the socket or use send(2), sendto(2), sendmsg(2) and the recv* counterpart operations on the socket as usual."
 	there is a difference between bind and connect. google it
 
+might have to write some stuff for caching received messages
+	CANSessionMux seems to be designed for request data, then process
+	sockets read data then process
+
+what is the fire-and-forget CAN api?
+RegisterRx function is empty.
+	void CtreCanNode::RegisterRx(uint32_t arbId)
+	{
+		/* no need to do anything, we just use new API to poll last received message */
+	}
+
+CanTalonSRX.cpp has a comment saying that getters don't block
+FRC_NetworkCommunication_CANSessionMux_receiveMessage does not block and is caching the most recently received messages
+	all the frc can bus devices use CANSessionMux which probably is caching all messages in the same place
+	our setup might have a cache for every talon which is a bit inefficent if the node running the talons are separate
+	maybe control all talons from a single node? rosparam can be passed a list of numbers
 
 
+http://brownhat.org/docs/socketcan/llcf-api.html
+https://github.com/JCube001/socketcan-demo
+https://www.kernel.org/doc/Documentation/networking/can.txt
+
+toggling motor demand between 0 and 100 stops after a while and cantact needs to be replugged to fix
+doesn't do this when toggling to 1000
