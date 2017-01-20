@@ -149,6 +149,20 @@ FRC_NetworkCommunication_CANSessionMux_receiveMessage does not block and is cach
 http://brownhat.org/docs/socketcan/llcf-api.html
 https://github.com/JCube001/socketcan-demo
 https://www.kernel.org/doc/Documentation/networking/can.txt
+https://github.com/nexulm/candleLight_fw
+	might be able to handle higher loads
+	uses something called gs_usb
+	doesn't have the stop transimitting problem
+http://canable.io/getting-started.html
+https://github.com/linklayer/cantact-fw
+https://developer.ridgerun.com/wiki/index.php/How_to_configure_and_use_CAN_bus#bit-timing_not_yet_defined
+
 
 toggling motor demand between 0 and 100 stops after a while and cantact needs to be replugged to fix
 doesn't do this when toggling to 1000
+still can receive messages though
+happens with both cantact and canable
+doesn't happen when talon is not connected
+cansend does not work when problem happens
+busload?
+	usb cdc can transfer 64KB/sec

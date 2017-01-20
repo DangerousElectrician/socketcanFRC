@@ -1,1 +1,1 @@
-sudo slcand -o -c -s8 /dev/ttyACM0 slcan0 && sudo ip link set slcan0 up
+sudo slcand -o -c -s8 /dev/ttyACM$1 slcan$1 && sudo ip link set slcan$1 up
