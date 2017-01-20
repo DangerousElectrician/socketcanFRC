@@ -52,7 +52,7 @@ namespace nCANSessionMux
 extern "C"
 {
 #endif
-	void init_socketCAN();
+	void init_socketCAN(char *ifname);
 
 	void FRC_NetworkCommunication_CANSessionMux_sendMessage(uint32_t messageID, const uint8_t *data, uint8_t dataSize, int32_t periodMs, int32_t *status);
 	void FRC_NetworkCommunication_CANSessionMux_receiveMessage(uint32_t *messageID, uint32_t messageIDMask, uint8_t *data, uint8_t *dataSize, uint32_t *timeStamp, int32_t *status);

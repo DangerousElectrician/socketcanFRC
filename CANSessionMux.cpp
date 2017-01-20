@@ -31,7 +31,6 @@ extern "C"
 	struct sockaddr_can addr;
 	int s;
 	int sbcm;
-	const char *ifname = "slcan0";
 	struct can_filter rfilter[1];
 
 	struct can_msg {
@@ -39,7 +38,7 @@ extern "C"
 		struct can_frame frame[1];
 	} msg;
 
-	void init_socketCAN() {
+	void init_socketCAN(char *ifname) {
 		//s = socket(PF_CAN, SOCK_DGRAM, CAN_BCM);
 		s = socket(PF_CAN, SOCK_RAW, CAN_RAW);
 		strcpy(ifr.ifr_name, ifname);
@@ -56,7 +55,7 @@ extern "C"
 	}
 
 	void FRC_NetworkCommunication_CANSessionMux_sendMessage(uint32_t messageID, const uint8_t *data, uint8_t dataSize, int32_t periodMs, int32_t *status) {
-		std::cout << "sendCAN " << messageID << "\t";
+		std::cout << "sendCAN 0x" << std::hex << messageID << "\t";
 		for(int i = 0; i < dataSize; i++) {
 			std::cout << unsigned(data[i]) << "\t";
 		}
@@ -70,7 +69,7 @@ extern "C"
 		msg.msg_head.ival1.tv_sec = 0;
 		msg.msg_head.ival1.tv_usec = 0;
 		msg.msg_head.ival2.tv_sec = 0;
-		msg.msg_head.ival2.tv_usec = 10000;
+		msg.msg_head.ival2.tv_usec = 1000*periodMs;
 		//msg.frame[0].can_id    = 0x42; /* obsolete when using TX_CP_CAN_ID */
 		msg.frame[0].can_dlc   = dataSize;
 		for(int i = 0; i<dataSize; i++) msg.frame[0].data[i] = data[i];
