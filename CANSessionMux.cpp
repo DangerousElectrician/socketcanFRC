@@ -6,6 +6,8 @@
 #include <map>
 #include <iterator>
 
+#include <sys/time.h>
+
 //socketcan includes
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +23,7 @@
 #include <linux/can/raw.h>
 #include <linux/can/bcm.h>
 
+std::map<uint32_t, tCANStreamMessage> receivedMsgs; //I need to keep track of time and tCANStreamMessage does it
 
 #ifdef __cplusplus
 extern "C"
@@ -40,7 +43,8 @@ extern "C"
 
 	void init_socketCAN(char *ifname) {
 		//s = socket(PF_CAN, SOCK_DGRAM, CAN_BCM);
-		s = socket(PF_CAN, SOCK_RAW, CAN_RAW);
+		s = socket(PF_CAN, SOCK_RAW | SOCK_NONBLOCK, CAN_RAW);
+		//s = socket(PF_CAN, SOCK_RAW , CAN_RAW);
 		strcpy(ifr.ifr_name, ifname);
 		ioctl(s, SIOCGIFINDEX, &ifr); 
 		addr.can_family = AF_CAN; 
@@ -87,17 +91,55 @@ extern "C"
 	}
 
 // this function does not block
+// proper behavior is to return the last received message with requested messageID
 	void FRC_NetworkCommunication_CANSessionMux_receiveMessage(uint32_t *messageID, uint32_t messageIDMask, uint8_t *data, uint8_t *dataSize, uint32_t *timeStamp, int32_t *status) {
 		std::cout << "recvCAN " << std::hex<<*messageID << std::endl;
 
-		rfilter[0].can_id = *messageID;
-		rfilter[0].can_mask = CAN_EFF_MASK;
-		setsockopt(s, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter));
+		//rfilter[0].can_id = *messageID;
+		//rfilter[0].can_mask = CAN_EFF_MASK;
+		//setsockopt(s, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter));
 
+		//ioctl(s, FIONREAD, &msgcount);
 		struct can_frame msg;
-		read(s, &msg, sizeof(msg));
-		std::cout << std::hex<<msg.can_id << std::endl;
-		for(int i=0; i<8; i++) data[i] = msg.data[i];
+		while(1) {
+			int a = read(s, &msg, sizeof(msg));
+			if(a == -1) break;
+
+			tCANStreamMessage tmsg;
+			tmsg.messageID = msg.can_id & ~0x80000000;
+			tmsg.dataSize = msg.can_dlc;
+			memcpy(tmsg.data, msg.data, 8);
+			//for(int i=0; i<8; i++) tmsg.data[i] = msg.data[i];
+			//std::cout << "tmsg id " << tmsg.messageID << std::endl;
+			receivedMsgs[tmsg.messageID] = tmsg;
+
+			struct timeval tval;
+			gettimeofday(&tval, NULL);
+			tmsg.timeStamp = tval.tv_usec;
+
+			receivedMsgs[tmsg.messageID] = tmsg;
+
+			//ioctl(s, FIONREAD, &msgcount);
+		}
+
+		std::map<uint32_t, tCANStreamMessage>::iterator i = receivedMsgs.find(*messageID);
+		if(i == receivedMsgs.end()) {
+			*status = ERR_CANSessionMux_MessageNotFound;
+			std::cout << "no message"<< std::endl;
+		} else {
+			*dataSize = receivedMsgs[*messageID].dataSize;
+			*status = 0;
+			memcpy(data, receivedMsgs[*messageID].data, 8);
+			//for(int i=0; i<8; i++) data[i] = receivedMsgs[*messageID].data[i];
+
+			std::cout << "reqsCAN 0x" << std::hex << *messageID<< "\t";
+			for(int b = 0; b < *dataSize; b++) {
+				std::cout << unsigned(data[b]) << "\t";
+			}
+			std::cout <<std::endl;
+		}
+
+		//std::cout << std::hex<<msg.can_id << std::endl;
 
 
 
@@ -122,8 +164,8 @@ extern "C"
 		uint32_t timeStamp = 0;
 		int32_t mystatus = 0;
 		uint8_t tmpdata[8];
-		uint8_t datasize;
-		FRC_NetworkCommunication_CANSessionMux_receiveMessage(&_messageID, 0, &messages->data[0], &datasize, &timeStamp, &mystatus);
+		uint8_t dataSize;
+		FRC_NetworkCommunication_CANSessionMux_receiveMessage(&_messageID, 0, &messages->data[0], &dataSize, &timeStamp, &mystatus);
 		messages->messageID = _messageID;
 		*messagesRead = 1;
 	}
