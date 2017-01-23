@@ -42,14 +42,11 @@ extern "C"
 	} msg;
 
 	void init_socketCAN(char *ifname) {
-		//s = socket(PF_CAN, SOCK_DGRAM, CAN_BCM);
-		s = socket(PF_CAN, SOCK_RAW | SOCK_NONBLOCK, CAN_RAW);
-		//s = socket(PF_CAN, SOCK_RAW , CAN_RAW);
+		s = socket(PF_CAN, SOCK_RAW | SOCK_NONBLOCK, CAN_RAW); //create nonblocking raw can socket
 		strcpy(ifr.ifr_name, ifname);
 		ioctl(s, SIOCGIFINDEX, &ifr); 
 		addr.can_family = AF_CAN; 
 		addr.can_ifindex = ifr.ifr_ifindex; 
-		//connect(s, (struct sockaddr *)&addr, sizeof(addr));
 		
 		bind(s, (struct sockaddr *)&addr, sizeof(addr));
 
@@ -76,41 +73,28 @@ extern "C"
 		msg.msg_head.ival2.tv_usec = 1000*periodMs;
 		//msg.frame[0].can_id    = 0x42; /* obsolete when using TX_CP_CAN_ID */
 		msg.frame[0].can_dlc   = dataSize;
-		for(int i = 0; i<dataSize; i++) msg.frame[0].data[i] = data[i];
+		memcpy(msg.frame[0].data, data, 8);
 		write(sbcm, &msg, sizeof(msg));
-
-		//msg.msg_head.opcode = TX_SETUP;
-		//msg.msg_head.can_id = messageID | 0x80000000; //first bit must be set for 29 bit extended ids;
-		//msg.msg_head.flags = 0;
-		//msg.msg_head.nframes = 1;
-		//msg.frame[0].can_id = messageID;
-		//for(int i = 0; i<dataSize; i++) msg.frame[0].data[i] = data[i];
-		//msg.frame[0].can_dlc = dataSize;
-		
-		
 	}
 
 // this function does not block
 // proper behavior is to return the last received message with requested messageID
 // TODO: have old messages expire
 	void FRC_NetworkCommunication_CANSessionMux_receiveMessage(uint32_t *messageID, uint32_t messageIDMask, uint8_t *data, uint8_t *dataSize, uint32_t *timeStamp, int32_t *status) {
-		std::cout << "recvCAN " << std::hex<<*messageID << std::endl;
 
 		//rfilter[0].can_id = *messageID;
 		//rfilter[0].can_mask = CAN_EFF_MASK;
 		//setsockopt(s, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter));
 
-		//ioctl(s, FIONREAD, &msgcount);
 		struct can_frame msg;
 		while(1) {
-			int a = read(s, &msg, sizeof(msg));
-			if(a == -1) break;
+			int a = read(s, &msg, sizeof(msg)); //TODO: better error handling
+			if(a == -1) break; // exit loop if there are no more messages to read
 
 			tCANStreamMessage tmsg;
-			tmsg.messageID = msg.can_id & ~0x80000000;
+			tmsg.messageID = msg.can_id & ~0x80000000; //remember to unset the MSB that indicates an extended ID
 			tmsg.dataSize = msg.can_dlc;
 			memcpy(tmsg.data, msg.data, 8);
-			//for(int i=0; i<8; i++) tmsg.data[i] = msg.data[i];
 			//std::cout << "tmsg id " << tmsg.messageID << std::endl;
 			receivedMsgs[tmsg.messageID] = tmsg;
 
@@ -120,7 +104,6 @@ extern "C"
 
 			receivedMsgs[tmsg.messageID] = tmsg;
 
-			//ioctl(s, FIONREAD, &msgcount);
 		}
 
 		std::map<uint32_t, tCANStreamMessage>::iterator i = receivedMsgs.find(*messageID);
@@ -131,7 +114,6 @@ extern "C"
 			*dataSize = receivedMsgs[*messageID].dataSize;
 			*status = 0;
 			memcpy(data, receivedMsgs[*messageID].data, 8);
-			//for(int i=0; i<8; i++) data[i] = receivedMsgs[*messageID].data[i];
 
 			std::cout << "reqsCAN 0x" << std::hex << *messageID<< "\t";
 			for(int b = 0; b < *dataSize; b++) {
@@ -139,11 +121,6 @@ extern "C"
 			}
 			std::cout <<std::endl;
 		}
-
-		//std::cout << std::hex<<msg.can_id << std::endl;
-
-
-
 	}
 
 //sessionHandle: set this integer to identify a session
