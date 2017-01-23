@@ -144,6 +144,14 @@ FRC_NetworkCommunication_CANSessionMux_receiveMessage does not block and is cach
 	all the frc can bus devices use CANSessionMux which probably is caching all messages in the same place
 	our setup might have a cache for every talon which is a bit inefficent if the node running the talons are separate
 	maybe control all talons from a single node? rosparam can be passed a list of numbers
+		I will do this
+	what happens when a message gets too old? discard?
+		last year messages did not expire
+		return a WARN_CANSessionMux_NoToken 44087?
+			going to do this
+		expire after 2 seconds
+			highest period between message is 100ms
+	if a message has not been received yet, return a ERR_CANSessionMux_MessageNotFound -44087
 
 
 http://brownhat.org/docs/socketcan/llcf-api.html
@@ -153,10 +161,15 @@ https://github.com/nexulm/candleLight_fw
 	might be able to handle higher loads
 	uses something called gs_usb
 	doesn't have the stop transimitting problem
+	THIS WORKS YAY
 http://canable.io/getting-started.html
 https://github.com/linklayer/cantact-fw
 https://developer.ridgerun.com/wiki/index.php/How_to_configure_and_use_CAN_bus#bit-timing_not_yet_defined
 
+slcan protocol is documented in lawciel serial to can converter datasheet
+
+sudo ip link set can0 type can bitrate 1000000 triple-sampling on
+	what does the triple sampling do?
 
 toggling motor demand between 0 and 100 stops after a while and cantact needs to be replugged to fix
 doesn't do this when toggling to 1000
@@ -166,3 +179,12 @@ doesn't happen when talon is not connected
 cansend does not work when problem happens
 busload?
 	usb cdc can transfer 64KB/sec
+
+motor controller protocol
+	canopen?
+		I don't understand it
+		not using
+	talon SRX?
+		I understand it
+		using
+
