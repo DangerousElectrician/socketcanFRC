@@ -16,9 +16,9 @@ int main(int argc, char **argv) {
 			sleep(1);
 			motor->SetDemand(0);
 			sleep(1);
-			//double dparam;
-			//motor->GetBatteryV(dparam);
-			//std::cout << "volts: " << dparam << std::endl <<std::endl;
+			double dparam;
+			motor->GetBatteryV(dparam);
+			std::cout << "volts: " <<std::dec << dparam << std::endl <<std::endl;
 			//int param;
 			//motor->GetLimitSwitchClosedFor(param);
 			//std::cout << "firmv: " << param<< std::endl <<std::endl;
