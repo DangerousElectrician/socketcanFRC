@@ -92,6 +92,7 @@ extern "C"
 
 // this function does not block
 // proper behavior is to return the last received message with requested messageID
+// TODO: have old messages expire
 	void FRC_NetworkCommunication_CANSessionMux_receiveMessage(uint32_t *messageID, uint32_t messageIDMask, uint8_t *data, uint8_t *dataSize, uint32_t *timeStamp, int32_t *status) {
 		std::cout << "recvCAN " << std::hex<<*messageID << std::endl;
 
