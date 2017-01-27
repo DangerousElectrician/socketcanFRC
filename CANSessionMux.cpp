@@ -77,9 +77,22 @@ extern "C"
 		write(sbcm, &msg, sizeof(msg));
 	}
 
+	int timediffms(struct timeval tv, struct timeval last_tv) {
+		// stolen from candump.c
+		struct timeval diff;
+		diff.tv_sec  = tv.tv_sec  - last_tv.tv_sec;
+		diff.tv_usec = tv.tv_usec - last_tv.tv_usec;
+		if (diff.tv_usec < 0)
+			diff.tv_sec--, diff.tv_usec += 1000000;
+		if (diff.tv_sec < 0)
+			diff.tv_sec = diff.tv_usec = 0;
+		return diff.tv_sec*1000 + diff.tv_usec/1000;
+
+	}
 // this function does not block
 // proper behavior is to return the last received message with requested messageID
 // TODO: have old messages expire
+	struct timeval last_tv;
 	void FRC_NetworkCommunication_CANSessionMux_receiveMessage(uint32_t *messageID, uint32_t messageIDMask, uint8_t *data, uint8_t *dataSize, uint32_t *timeStamp, int32_t *status) {
 
 		//rfilter[0].can_id = *messageID;
@@ -96,14 +109,18 @@ extern "C"
 			tmsg.dataSize = msg.can_dlc;
 			memcpy(tmsg.data, msg.data, 8);
 			//std::cout << "tmsg id " << tmsg.messageID << std::endl;
+
+			struct timeval tv; 
+			ioctl(s, SIOCGSTAMP, &tv);
+			if (last_tv.tv_sec == 0)   /* first init */
+				last_tv = tv;
+			//struct timeval diff;
+			//diff = timediff(tv, last_tv);
+
+			tmsg.timeStamp = timediffms(tv, last_tv); //diff.tv_sec*1000 + diff.tv_usec/1000;
+			//std::cout << "timestamp " <<std::dec << tmsg.timeStamp <<std::endl;
+			
 			receivedMsgs[tmsg.messageID] = tmsg;
-
-			struct timeval tval;
-			gettimeofday(&tval, NULL);
-			tmsg.timeStamp = tval.tv_usec;
-
-			receivedMsgs[tmsg.messageID] = tmsg;
-
 		}
 
 		std::map<uint32_t, tCANStreamMessage>::iterator i = receivedMsgs.find(*messageID);
@@ -111,9 +128,17 @@ extern "C"
 			*status = ERR_CANSessionMux_MessageNotFound;
 			std::cout << "no message"<< std::endl;
 		} else {
-			*dataSize = receivedMsgs[*messageID].dataSize;
-			*status = 0;
-			memcpy(data, receivedMsgs[*messageID].data, 8);
+			*dataSize = i->second.dataSize;
+			struct timeval tv; 
+			gettimeofday(&tv, NULL);
+
+			if(timediffms(tv, last_tv) - i->second.timeStamp < 2000) { //is the message too old? timeout when message is older than 2 sec
+				*status = 0;
+			} else {
+				*status = WARN_CANSessionMux_NoToken; //I think this is what happens with actual FRC hardware
+				//std::cout << "too old" << std::endl;
+			}
+			memcpy(data,  i->second.data, 8);
 
 			std::cout << "reqsCAN 0x" << std::hex << *messageID<< "\t";
 			for(int b = 0; b < *dataSize; b++) {
