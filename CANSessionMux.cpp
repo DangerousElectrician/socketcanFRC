@@ -175,16 +175,16 @@ extern "C"
 			int a = read(sessionHandle, &msg, sizeof(msg));
 			if(a == -1) break;
 
-			messages[*messagesRead].messageID = msg.can_id & ~0x80000000;
-			messages[*messagesRead].dataSize = msg.can_dlc;
-			memcpy(messages[*messagesRead].data, msg.data, 8);
+			messages[q].messageID = msg.can_id & ~0x80000000;
+			messages[q].dataSize = msg.can_dlc;
+			memcpy(messages[q].data, msg.data, 8);
 
 			struct timeval tv;
 			ioctl(s, SIOCGSTAMP, &tv);
 			if (last_tv.tv_sec == 0)   /* first init */
 				last_tv = tv;
 
-			messages[*messagesRead].timeStamp = timediffms(tv, last_tv); //diff.tv_sec*1000 + diff.tv_usec/1000;
+			messages[q].timeStamp = timediffms(tv, last_tv); //diff.tv_sec*1000 + diff.tv_usec/1000;
 		}
 		*messagesRead = q;
 	}
