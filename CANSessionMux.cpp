@@ -56,11 +56,11 @@ extern "C"
 	}
 
 	void FRC_NetworkCommunication_CANSessionMux_sendMessage(uint32_t messageID, const uint8_t *data, uint8_t dataSize, int32_t periodMs, int32_t *status) {
-		std::cout << "sendCAN 0x" << std::hex << messageID << "\t";
-		for(int i = 0; i < dataSize; i++) {
-			std::cout << unsigned(data[i]) << "\t";
-		}
-		std::cout << "datsize:" << unsigned(dataSize) << "\tper:" << periodMs << std::endl;
+		//std::cout << "sendCAN 0x" << std::hex << messageID << "\t";
+		//for(int i = 0; i < dataSize; i++) {
+		//	std::cout << unsigned(data[i]) << "\t";
+		//}
+		//std::cout << "datsize:" << unsigned(dataSize) << "\tper:" << periodMs << std::endl;
 
 		msg.msg_head.opcode  = TX_SETUP;
 		msg.msg_head.can_id  = messageID | 0x80000000;
@@ -149,17 +149,19 @@ extern "C"
 
 //sessionHandle: set this integer to identify a session
 //messageID: arbID of messages to cache
-//messageIDMask: CanTalonSRX sets this to 0xFFFFFFFF
+//messageIDMask: CanTalonSRX sets this to 0xFFFFFFFF, which does not work with socketCAN. SocketCAN wants 0x1fffffff
 //maxMessages: maximum number of messages that can be returned at once, CanTalonSRX has this set to 20
 //status: set to zero if everything worked
 	uint32_t _messageID = 0;
 	void FRC_NetworkCommunication_CANSessionMux_openStreamSession(uint32_t *sessionHandle, uint32_t messageID, uint32_t messageIDMask, uint32_t maxMessages, int32_t *status) {
 		*sessionHandle = socket(PF_CAN, SOCK_RAW | SOCK_NONBLOCK, CAN_RAW); //create nonblocking raw can socket
 		struct can_filter rfilter[1];
-		rfilter[0].can_id = messageID;
-		rfilter[0].can_mask = messageIDMask | 0x80000000;
+		rfilter[0].can_id = messageID| 0x80000000;
+		if(messageIDMask > CAN_EFF_MASK) messageIDMask = CAN_EFF_MASK;
+		rfilter[0].can_mask = messageIDMask;
 		setsockopt(*sessionHandle, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter));
 		bind(*sessionHandle, (struct sockaddr *)&addr, sizeof(addr));
+		//std::cout << "filter canid " <<std::hex << rfilter[0].can_mask<<std::dec<< std::endl;
 	}
 
 	void FRC_NetworkCommunication_CANSessionMux_closeStreamSession(uint32_t sessionHandle) {
@@ -169,8 +171,10 @@ extern "C"
 	//messagesToRead: seems to do the same thing as maxMessages
 	//messagesRead: number of messages returned
 	void FRC_NetworkCommunication_CANSessionMux_readStreamSession(uint32_t sessionHandle, struct tCANStreamMessage *messages, uint32_t messagesToRead, uint32_t *messagesRead, int32_t *status) {
+		//std::cout << "sessionHandle " << sessionHandle << std::endl;
 		uint32_t q;
 		for(q = 0; q < messagesToRead; q++) {
+			//std::cout <<"debugging! " << messagesToRead << std::endl;
 			struct can_frame msg;
 			int a = read(sessionHandle, &msg, sizeof(msg));
 			if(a == -1) break;
