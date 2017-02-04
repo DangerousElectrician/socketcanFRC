@@ -4,14 +4,14 @@ CXX=g++
 CFLAGS=-c -Wall
 LDFLAGS=
 SOURCES= $(wildcard *.cpp)
-OBJECTS= $(SOURCES:.cpp=.o)
-EXECUTABLE=test
+OBJECTS= $(SOURCES:%.cpp=build/%.o)
+EXECUTABLE=build/test
 
 all: $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
 	$(CXX) $(LDFLAGS) $(OBJECTS) -o $@
 
-.cpp.o:
+$(OBJECTS): build/%.o : %.cpp
 	$(CXX) $(CFLAGS) $(INCLUDES) $< -o $@
 
