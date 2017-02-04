@@ -34,7 +34,6 @@ extern "C"
 	struct sockaddr_can addr;
 	int s;
 	int sbcm;
-	//struct can_filter rfilter[1];
 
 	struct can_msg {
 		struct bcm_msg_head msg_head;
@@ -94,10 +93,6 @@ extern "C"
 	struct timeval last_tv;
 	void FRC_NetworkCommunication_CANSessionMux_receiveMessage(uint32_t *messageID, uint32_t messageIDMask, uint8_t *data, uint8_t *dataSize, uint32_t *timeStamp, int32_t *status) {
 
-		//rfilter[0].can_id = *messageID;
-		//rfilter[0].can_mask = CAN_EFF_MASK;
-		//setsockopt(s, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter));
-
 		struct can_frame msg;
 		while(1) {
 			int a = read(s, &msg, sizeof(msg)); //TODO: better error handling
@@ -107,16 +102,13 @@ extern "C"
 			tmsg.messageID = msg.can_id & ~0x80000000; //remember to unset the MSB that indicates an extended ID
 			tmsg.dataSize = msg.can_dlc;
 			memcpy(tmsg.data, msg.data, 8);
-			//std::cout << "tmsg id " << tmsg.messageID << std::endl;
 
 			struct timeval tv; 
 			ioctl(s, SIOCGSTAMP, &tv);
 			if (last_tv.tv_sec == 0)   /* first init */
 				last_tv = tv;
-			//struct timeval diff;
-			//diff = timediff(tv, last_tv);
 
-			tmsg.timeStamp = timediffms(tv, last_tv); //diff.tv_sec*1000 + diff.tv_usec/1000;
+			tmsg.timeStamp = timediffms(tv, last_tv);
 			//std::cout << "timestamp " <<std::dec << tmsg.timeStamp <<std::endl;
 			
 			receivedMsgs[tmsg.messageID] = tmsg;
@@ -161,7 +153,6 @@ extern "C"
 		rfilter[0].can_mask = messageIDMask;
 		setsockopt(*sessionHandle, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter));
 		bind(*sessionHandle, (struct sockaddr *)&addr, sizeof(addr));
-		//std::cout << "filter canid " <<std::hex << rfilter[0].can_mask<<std::dec<< std::endl;
 	}
 
 	void FRC_NetworkCommunication_CANSessionMux_closeStreamSession(uint32_t sessionHandle) {
