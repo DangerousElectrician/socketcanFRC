@@ -1,17 +1,25 @@
-IDIR	= ./include
 INCLUDES = -I"include"
 CXX=g++
 CFLAGS=-c -Wall
-LDFLAGS=
+LDFLAGS= -Wall
 SOURCES= $(wildcard *.cpp)
 OBJECTS= $(SOURCES:%.cpp=build/%.o)
 EXECUTABLE=build/test
+
+
+
+.PHONY: directories clean
 
 all: $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
 	$(CXX) $(LDFLAGS) $(OBJECTS) -o $@
 
-$(OBJECTS): build/%.o : %.cpp
+$(OBJECTS): build/%.o : %.cpp directories
 	$(CXX) $(CFLAGS) $(INCLUDES) $< -o $@
 
+directories:
+	mkdir -p build
+
+clean:
+	rm -r build
