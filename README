@@ -1,3 +1,9 @@
 Use FRC electrical components with a socketCAN interface.
 
 FRC has some of the cheapest, most capable motor controllers on the market.
+
+CANSessionMux.h defines the functions the official FRC code uses to interact with the can bus interface. The actual functions are implemented in a binary for the roboRIO.
+CANSessionMux.cpp implements those functions to use a socketCAN interface.
+
+Currently, only a single CAN bus can be used for all devices using CANSessionMux. This is normally not an issue in most cases.
+A function that calculates CAN bus load is also not implemented as socketCAN has a canbusload utility to do that.
