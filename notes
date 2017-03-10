@@ -188,3 +188,26 @@ motor controller protocol
 		I understand it
 		using
 
+
+wpilib CANTalon.cpp has a function that disables the motor
+void CANTalon::Disable() {
+  m_impl->SetModeSelect((int)CANTalon::kDisabled);
+  m_controlEnabled = false;
+}
+
+void CANTalon::EnableControl() {
+  SetControlMode(m_controlMode);
+  m_controlEnabled = true;
+}
+m_controlMode is the current control mode
+Disable() does not change m_controlMode and m_controlMode is used to reenable the talon
+
+Possible values of m_controlMode
+	static const int kMode_DutyCycle = 0; //!< Demand is 11bit signed duty cycle [-1023,1023].
+        static const int kMode_PositionCloseLoop = 1; //!< Position PIDF.
+        static const int kMode_VelocityCloseLoop = 2; //!< Velocity PIDF.
+        static const int kMode_CurrentCloseLoop = 3; //!< Current close loop - not done.
+        static const int kMode_VoltCompen = 4; //!< Voltage Compensation Mode - not done.  Demand is fixed pt target 8.8 volts.
+        static const int kMode_SlaveFollower = 5; //!< Demand is the 6 bit Device ID of the 'master' TALON SRX.
+        static const int kMode_NoDrive = 15; //!< Zero the output (honors brake/coast) regardless of demand.  Might be useful if we need to change modes but can't atomically change all the signals we want in between.
+
